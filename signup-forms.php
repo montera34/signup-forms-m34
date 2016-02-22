@@ -19,9 +19,9 @@ add_action( 'authenticate', 'm34_login_blank');
 add_shortcode('m34_userform', 'm34_userform');
 
 
-// user login form 
-function m34_login_output( $action,$register_url,$feedback_out ) {
-	$login_action = wp_login_url($action);
+// user login form output
+function m34_login_output( $redirect_url,$register_url,$feedback_out ) {
+	$login_action = wp_login_url($redirect_url);
 	$form_out = $feedback_out. "
 		<form class='row' id='loginform' name='loginform' method='post' action='" .$login_action. "' role='form'>
 			<div class='form-horizontal col-md-12'>
@@ -113,21 +113,44 @@ function m34_login_blank( $user ){
 
 } // end redirect to right log in page when blank username or password
 
-// user logout form 
+// login form error output
+function m34_login_error_output() {
+	if ( array_key_exists('login',$_GET) ) {
+		$lost_pass_url = wp_lostpassword_url(get_permalink()."?login=lost-password");
+		$login_fail = sanitize_text_field($_GET['login']);
+		if ( $login_fail == 'failed' ) {
+			$feedback_type = "danger"; $feedback_text = __('Username or password is not correct. Check them, please. Password forgotten?','sstfg')." <a class='btn btn-default' href='".$lost_pass_url."'>".__('get another one','sstfg')."</a>";
+
+		} elseif ( $login_fail == 'empty' ) {
+			$feedback_type = "danger"; $feedback_text = __('Username or password are empty. If you forgot your password','sstfg'). "<a class='btn btn-default' href='".$lost_pass_url."'>".__('get another one','sstfg')."</a>";
+		
+		} elseif ( $login_fail == 'lost-password' ) {
+			$feedback_type = "info"; $feedback_text = __('<strong>A new password has been sent to your email address</strong>. You should receive it in a few moments. It may go to your spam folder.','sstfg');
+
+		}
+		$feedback_out = "<div class='alert alert-".$feedback_type."' role='alert'>".$feedback_text."</div>";
+
+	} else { $feedback_out = ""; }
+	return $feedback_out;
+
+} // end login form error output
+
+// logout form output
 function m34_logout_output() {
 	$url = wp_logout_url($_SERVER['REQUEST_URI']);
 	$text = __('Log out','m34forms');
 	$form_out = "<a href='".$url."'>".$text."</a>";
 	return $form_out;
-}
+} // end logout form output
 
-// show user login/signup form
+// show login/signup form and run actions
 function m34_userform() {
 	if ( is_user_logged_in() ) return m34_logout_output();
 
-	$action = get_permalink();
-	$login_action = wp_login_url($redirect_url);
-	$feedback_out = "";
+	$login_redirect_url = get_permalink();
+	$register_url = "";
+	// build error feedback
+	$feedback_out = m34_login_error_output();
 
-	return m34_login_output($action,$register_url,$feedback_out);
-}
+	return m34_login_output($login_redirect_url,$register_url,$feedback_out);
+} // end show login/signup form and run actions
