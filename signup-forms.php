@@ -10,9 +10,9 @@ License: GPLv3
 
 // ACTIONS and FILTERS
 // hook failed login
-//add_action( 'wp_login_failed', 'm34_login_failed' );
+add_action( 'wp_login_failed', 'm34_login_failed' );
 // redirect to right log in page when blank username or password
-//add_action( 'authenticate', 'm34_blank_login');
+add_action( 'authenticate', 'm34_login_blank');
 
 // SHORTCODES
 // show user form
@@ -51,10 +51,67 @@ function m34_login_output( $action,$register_url,$feedback_out ) {
 			</fieldset>
 			</div>
 		</form>
+		<div class='row'>
+			<div class='col-md-5 col-md-offset-3'>
+				<div class='pull-right'>
+					".__("If you don't have an account yet:",'m34forms')." <a class='btn btn-success' href='".$register_url."'>".__('Sign up','m34forms')."</a>
+				</div>
+			</div>
+		</div>
 	";
 	return $form_out;
 
 } // end user login form
+
+// redirect to right log in page when log in failed
+function m34_login_failed( $user ) {
+	// check what page the login attempt is coming from
+	if ( array_key_exists('ref',$_GET) ) {
+		$ref = sanitize_text_field($_GET['ref']);
+	} else {
+		$ref = $_SERVER['HTTP_REFERER'];
+		$ref = preg_replace("/\?.*$/","",$ref);
+	}
+
+	// check that we're not on the default login page
+	if ( !empty($ref) && !strstr($ref,'wp-login') && !strstr($ref,'wp-admin') && $user!=null ) {
+		// make sure we don't already have a failed login attempt
+		if ( !strstr($ref, '?login=failed' )) {
+			// Redirect to the login page and append a querystring of login failed
+			wp_redirect( $ref . '?login=failed');
+		} else { wp_redirect( $ref ); }
+
+		exit;
+	}
+} // end redirect to right log in page when log in failed
+
+// redirect to right log in page when blank username or password
+function m34_login_blank( $user ){
+	// check what page the login attempt is coming from
+	if ( array_key_exists('ref',$_GET) ) {
+		$ref = sanitize_text_field($_GET['ref']);
+	} else {
+		$ref = $_SERVER['HTTP_REFERER'];
+		$ref = preg_replace('/\?.*$/','',$ref);
+	}
+
+	$error = false;
+	if( array_key_exists('log',$_POST) && sanitize_text_field($_POST['log']) == '' ||
+	array_key_exists('log',$_POST) && sanitize_text_field($_POST['pwd']) == '') { $error = true; }
+
+  	// check that we're not on the default login page
+	if ( !empty($ref) && !strstr($ref,'wp-login') && !strstr($ref,'wp-admin') && $error ) {
+
+		// make sure we don't already have a failed login attempt
+		if ( !strstr($ref, '?login=empty') ) {
+			// Redirect to the login page and append a querystring of login failed
+			wp_redirect( $ref . '?login=empty' );
+		} else { wp_redirect( $ref ); }
+		exit;
+
+	}
+
+} // end redirect to right log in page when blank username or password
 
 // user logout form 
 function m34_logout_output() {
